@@ -7,8 +7,10 @@ export const createClaimsTable = (claims) => {
     let claimsObj = {};
     let index = 0;
 
+    if (!claims) return claimsObj;
+
     Object.keys(claims).forEach((key) => {
-        if (typeof claims[key] !== 'string' && typeof claims[key] !== 'number') return;
+        if (typeof claims[key] !== 'string' && typeof claims[key] !== 'number' && !Array.isArray(claims[key])) return;
         switch (key) {
             case 'aud':
                 populateClaim(
@@ -144,6 +146,16 @@ export const createClaimsTable = (claims) => {
                 populateClaim(key, claims[key], 'Session ID, used for per-session user sign-out.', index, claimsObj);
                 index++;
                 break;
+            case 'acrs':
+                populateClaim(
+                    key,
+                    Array.isArray(claims[key]) ? claims[key].join(', ') : claims[key],
+                    'Authentication Context Class Reference(s) satisfied for this token. Set by Conditional Access when a policy scoped to an Authentication Context (e.g. "c1") has been evaluated and its requirements (such as MFA) have been met.',
+                    index,
+                    claimsObj
+                );
+                index++;
+                break;
             case 'sub':
                 populateClaim(
                     key,
@@ -159,6 +171,27 @@ export const createClaimsTable = (claims) => {
                     key,
                     claims[key],
                     'Version of the token issued by the Microsoft identity platform',
+                    index,
+                    claimsObj
+                );
+                index++;
+                break;
+            case 'scp':
+                populateClaim(
+                    key,
+                    claims[key],
+                    'The set of scopes exposed by your API that the client was granted consent to call.',
+                    index,
+                    claimsObj
+                );
+                index++;
+                break;
+            case 'azp':
+            case 'appid':
+                populateClaim(
+                    key,
+                    claims[key],
+                    'The Application ID of the client that requested this token.',
                     index,
                     claimsObj
                 );
@@ -203,4 +236,31 @@ const populateClaim = (claim, value, description, index, claimsObject) => {
 const changeDateFormat = (date) => {
     let dateObj = new Date(date * 1000);
     return `${date} - [${dateObj.toString()}]`;
+};
+
+/**
+ * MSAL decodes the ID token for you (idTokenClaims), but not the access token -
+ * it's meant to be opaque to the client per OAuth spec, even though Microsoft's
+ * own access tokens are JWTs in practice. Decodes the payload segment so it can
+ * be shown in the same claims table as the ID token.
+ * @param {String} jwt raw access token string
+ * @returns {Object|null} decoded payload claims, or null if it isn't a decodable JWT
+ */
+export const decodeJwtClaims = (jwt) => {
+    if (!jwt) return null;
+    try {
+        const payload = jwt.split('.')[1];
+        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+        const decoded = decodeURIComponent(
+            atob(padded)
+                .split('')
+                .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+                .join('')
+        );
+        return JSON.parse(decoded);
+    } catch (error) {
+        console.log('Unable to decode access token', error);
+        return null;
+    }
 };

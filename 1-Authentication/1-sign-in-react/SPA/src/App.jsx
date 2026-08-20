@@ -1,16 +1,18 @@
-import { MsalProvider, AuthenticatedTemplate, useMsal, UnauthenticatedTemplate } from '@azure/msal-react';
-import { Container, Button } from 'react-bootstrap';
+import { useEffect, useState } from 'react';
+import { MsalProvider, AuthenticatedTemplate, useMsal } from '@azure/msal-react';
+import { InteractionStatus } from '@azure/msal-browser';
+import { Container, Button, Tabs, Tab } from 'react-bootstrap';
 import { PageLayout } from './components/PageLayout';
-import { IdTokenData } from './components/DataDisplay';
-import { loginRequest } from './authConfig';
+import { IdTokenData, AccessTokenData } from './components/DataDisplay';
+import { decodeJwtClaims } from './utils/claimUtils';
+import { loginRequest, stepUpAuthRequest, stepUpAuthenticationContext } from './authConfig';
 
 import './styles/App.css';
 
 /**
- * Most applications will need to conditionally render certain components based on whether a user is signed in or not. 
- * msal-react provides 2 easy ways to do this. AuthenticatedTemplate and UnauthenticatedTemplate components will 
- * only render their children if a user is authenticated or unauthenticated, respectively. For more, visit:
- * https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-react/docs/getting-started.md
+ * Sign in / Join Banana Club live in the nav flyout (NavigationBar.jsx).
+ * This component only renders the authenticated demo content: the
+ * step-up (Authentication Context / MFA) button and the ID token claims.
  */
 const MainContent = () => {
     /**
@@ -18,32 +20,77 @@ const MainContent = () => {
      * that tells you what msal is currently doing. For more, visit:
      * https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-react/docs/hooks.md
      */
-    const { instance } = useMsal();
+    const { instance, inProgress } = useMsal();
     const activeAccount = instance.getActiveAccount();
+    const [accessTokenClaims, setAccessTokenClaims] = useState(null);
+    const [accessTokenError, setAccessTokenError] = useState(null);
 
-    const handleRedirect = () => {
+    /**
+     * Requests a token with an Authentication Context (acrs) claim. This forces the
+     * request back through Microsoft Entra with the claims challenge attached, which
+     * causes any Conditional Access policy scoped to that Authentication Context
+     * (e.g. requiring MFA) to be evaluated/enforced before the token is issued.
+     */
+    const handleStepUpAuth = () => {
         instance
-            .loginRedirect({
-                ...loginRequest,
-                prompt: 'create',
-            })
+            .acquireTokenRedirect(stepUpAuthRequest)
             .catch((error) => console.log(error));
     };
+
+    // Unlike the ID token, MSAL doesn't decode the access token for you (it's
+    // meant to be opaque to the client). Pull one silently from cache/refresh
+    // and decode it ourselves so it can be shown next to the ID token claims.
+    useEffect(() => {
+        if (!activeAccount || inProgress !== InteractionStatus.None) return;
+        instance
+            .acquireTokenSilent({ ...loginRequest, account: activeAccount })
+            .then((result) => setAccessTokenClaims(decodeJwtClaims(result.accessToken)))
+            .catch((error) => setAccessTokenError(error.message || String(error)));
+    }, [instance, activeAccount, inProgress]);
+
+    // Has the Conditional Access step-up (Authentication Context c1 / MFA) already
+    // been satisfied for this session? Reflected by the acrs claim on the ID token.
+    const acrsClaim = activeAccount?.idTokenClaims?.acrs;
+    const stepUpSatisfied = Array.isArray(acrsClaim)
+        ? acrsClaim.includes(stepUpAuthenticationContext)
+        : acrsClaim === stepUpAuthenticationContext;
+
     return (
-        <div className="App">
-            <AuthenticatedTemplate>
-                {activeAccount ? (
-                    <Container>
-                        <IdTokenData idTokenClaims={activeAccount.idTokenClaims} />
-                    </Container>
-                ) : null}
-            </AuthenticatedTemplate>
-            <UnauthenticatedTemplate>
-                <Button className="signInButton" onClick={handleRedirect} variant="primary">
-                    Sign up
-                </Button>
-            </UnauthenticatedTemplate>
-        </div>
+        <AuthenticatedTemplate>
+            {activeAccount ? (
+                <Container>
+                    <div className="sensitive-feature-row">
+                        <span className="drivers-license">
+                            Driver's License: {stepUpSatisfied ? 'DL8773233198' : 'XXXXXXXX98'}
+                        </span>
+                        <Button
+                            className="stepUpButton"
+                            onClick={handleStepUpAuth}
+                            variant={stepUpSatisfied ? 'success' : 'danger'}
+                        >
+                            {stepUpSatisfied ? 'Sensitive Data now Visible' : 'Access Sensitive Feature (Require MFA)'}
+                        </Button>
+                    </div>
+                    <br />
+                    {inProgress === InteractionStatus.None && activeAccount.idTokenClaims ? (
+                        <Tabs defaultActiveKey="idToken" className="token-tabs">
+                            <Tab eventKey="idToken" title="ID Token">
+                                <IdTokenData idTokenClaims={activeAccount.idTokenClaims} />
+                            </Tab>
+                            <Tab eventKey="accessToken" title="Access Token">
+                                {accessTokenClaims ? (
+                                    <AccessTokenData accessTokenClaims={accessTokenClaims} />
+                                ) : accessTokenError ? (
+                                    <p className="warningMessage">Could not load the access token: {accessTokenError}</p>
+                                ) : (
+                                    <p>Loading access token…</p>
+                                )}
+                            </Tab>
+                        </Tabs>
+                    ) : null}
+                </Container>
+            ) : null}
+        </AuthenticatedTemplate>
     );
 };
 

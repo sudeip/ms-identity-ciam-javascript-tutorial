@@ -1,0 +1,349 @@
+:root {
+    --brand-green-dark: #0b3d2c;
+    --brand-green-darker: #062a1e;
+    --brand-green: #0b6e4f;
+    --brand-gold: #f2b705;
+    --brand-cream: #f7f8f5;
+    --brand-text: #1b2a22;
+}
+
+body {
+    background: var(--brand-cream);
+}
+
+/* ---------- Utility bar ---------- */
+.utility-bar {
+    background: var(--brand-green-darker);
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 1.5rem;
+    font-size: 0.82rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.utility-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.utility-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.82rem;
+}
+
+.utility-link:hover {
+    color: var(--brand-gold);
+}
+
+.utility-toggle {
+    cursor: pointer;
+}
+
+.utility-menu {
+    background: #fff;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    padding: 0.35rem;
+    min-width: 100px;
+}
+
+/* ---------- Nav ---------- */
+.brand-navbar {
+    background: var(--brand-green-dark) !important;
+    padding: 0.75rem 1.5rem !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.brand-navbar-logo {
+    display: flex;
+    align-items: center;
+}
+
+.btn-outline-gold {
+    background: transparent !important;
+    border: 1.5px solid var(--brand-gold) !important;
+    color: var(--brand-gold) !important;
+    border-radius: 999px !important;
+    padding: 0.4rem 1.25rem !important;
+    font-weight: 600 !important;
+}
+
+.btn-outline-gold:hover {
+    background: var(--brand-gold) !important;
+    color: var(--brand-green-dark) !important;
+}
+
+.flyout-toggle {
+    font-size: 0.95rem;
+}
+
+.flyout-caret {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-left: 0.35em;
+    vertical-align: middle;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+}
+
+.flyout-menu {
+    background: #fff;
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 240px;
+}
+
+/* Bootstrap's .dropdown-menu is display:none until it gets the .show class,
+   then Bootstrap itself sets display:block. Same specificity as this rule,
+   and Bootstrap's stylesheet loads after ours in the bundle, so it wins the
+   cascade without !important - and gap has no effect on a block container. */
+.flyout-menu.show {
+    display: flex !important;
+}
+
+.flyout-btn {
+    width: 100%;
+    border-radius: 999px !important;
+    font-weight: 700 !important;
+    padding: 0.65rem 1rem !important;
+}
+
+.joinButton {
+    background: var(--brand-green) !important;
+    border: none !important;
+    color: #fff !important;
+}
+
+.joinButton:hover {
+    filter: brightness(1.1);
+}
+
+/* ---------- Hero ---------- */
+.hero {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding-bottom: 5rem; /* room for the search widget docked over the bottom edge */
+}
+
+.hero-overlay {
+    background: linear-gradient(180deg, rgba(11, 61, 44, 0.55) 0%, rgba(11, 61, 44, 0.75) 100%);
+    padding: 4rem 1.5rem 7rem;
+    display: flex;
+    justify-content: center;
+}
+
+.hero-content {
+    max-width: 760px;
+    text-align: center;
+    color: #fff;
+}
+
+.hero-eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 700;
+    color: var(--brand-gold);
+    margin-bottom: 0.5rem;
+}
+
+.hero-content h1 {
+    font-size: 2.75rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+}
+
+.signInButton {
+    background: var(--brand-gold) !important;
+    border: none !important;
+    color: var(--brand-green-dark) !important;
+}
+
+.stepUpButton {
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+}
+
+.sensitive-feature-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.drivers-license {
+    font-weight: 600;
+    color: var(--brand-text);
+}
+
+/* ---------- Token claims tabs / table ---------- */
+.claim-row-highlight td {
+    background-color: rgba(242, 183, 5, 0.28) !important;
+    font-weight: 700;
+}
+
+.token-tabs {
+    margin-top: 1.5rem;
+}
+
+.token-tabs .nav-link {
+    color: var(--brand-text);
+    font-weight: 600;
+}
+
+.token-tabs .nav-link.active {
+    color: var(--brand-green-dark);
+    border-color: #dee2e6 #dee2e6 #fff;
+    border-bottom: 3px solid var(--brand-gold);
+}
+
+/* ---------- Search widget ---------- */
+.search-widget-dock {
+    position: relative;
+    max-width: 1080px;
+    margin: -3.5rem auto 0;
+    padding: 0 1.5rem;
+}
+
+.search-widget {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-widget-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1 1 200px;
+}
+
+.search-widget-field label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--brand-text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.search-widget-field input {
+    border: 1.5px solid #d8ddd6;
+    border-radius: 8px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.95rem;
+    color: var(--brand-text);
+}
+
+.search-widget-field input:focus {
+    outline: none;
+    border-color: var(--brand-green);
+}
+
+.search-widget-button {
+    background: var(--brand-gold);
+    border: none;
+    color: var(--brand-green-dark);
+    border-radius: 999px;
+    padding: 0.7rem 2rem;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.search-widget-button:hover {
+    filter: brightness(0.95);
+}
+
+.search-widget-notice {
+    flex-basis: 100%;
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: #6b5400;
+    background: #fff8e0;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+}
+
+/* ---------- Dashboard section (authenticated demo content) ---------- */
+.dashboard-section {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.dashboard-section:empty {
+    padding: 0;
+}
+
+.dashboard-section .container {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin: 2.5rem auto;
+    box-shadow: 0 8px 24px rgba(11, 61, 44, 0.1);
+    color: var(--brand-text);
+    text-align: left;
+    max-width: 100%;
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+    background: var(--brand-green-dark);
+    color: rgba(255, 255, 255, 0.75);
+    padding: 1.5rem;
+    position: static;
+}
+
+.site-footer-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.site-footer-inner a {
+    color: var(--brand-gold);
+    text-decoration: none;
+}
+
+.site-footer-inner a:hover {
+    text-decoration: underline;
+}

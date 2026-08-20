@@ -1,10 +1,16 @@
+// Bootstrap's CSS must be imported before any of our own component styles
+// (pulled in transitively via `App` below) - otherwise, for any class name
+// that collides with a Bootstrap class (e.g. our .flyout-menu living
+// alongside Bootstrap's own .dropdown-menu), same-specificity rules are
+// resolved by source order, and Bootstrap would win just by loading later.
+import 'bootstrap/dist/css/bootstrap.min.css';
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { PublicClientApplication, EventType } from '@azure/msal-browser';
 import { msalConfig } from './authConfig';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/index.css';
 
 /**

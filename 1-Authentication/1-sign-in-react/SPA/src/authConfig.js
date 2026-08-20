@@ -13,8 +13,8 @@ import { LogLevel } from '@azure/msal-browser';
 
 export const msalConfig = {
     auth: {
-        clientId: 'Enter_the_Application_Id_Here', // This is the ONLY mandatory field that you need to supply.
-        authority: 'https://Enter_the_Tenant_Subdomain_Here.ciamlogin.com/', // Replace the placeholder with your tenant subdomain 
+        clientId: 'a9c3ed42-c649-4ad4-b003-43ec0f35d44d', // This is the ONLY mandatory field that you need to supply.
+        authority: 'https://bsccustomers.ciamlogin.com/', // Replace the placeholder with your tenant subdomain 
         redirectUri: 'http://localhost:3000/redirect', // Points to window.location.origin. You must register this URI on Microsoft Entra admin center/App Registration.
         postLogoutRedirectUri: '/', // Indicates the page to navigate after logout.
         navigateToLoginRequestUrl: false, // If "true", will navigate back to the original request location before processing the auth code response.
@@ -57,7 +57,35 @@ export const msalConfig = {
  * https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
  */
 export const loginRequest = {
-    scopes: [],
+    scopes: ["api://bsc-api/web"],
+};
+
+/**
+ * Same request, but with prompt: 'create' so Entra routes the user through
+ * sign-up instead of sign-in. Used by the "Join Banana Club" action.
+ */
+export const joinRequest = {
+    ...loginRequest,
+    prompt: 'create',
+};
+
+/**
+ * Claims request used to demand a specific Authentication Context Class Reference (ACRS)
+ * on the access token. Conditional Access policies can be scoped to an Authentication Context
+ * (e.g. "c1") in the Microsoft Entra admin center; when this claim is requested, CA will
+ * evaluate that policy and can force step-up authentication (e.g. MFA) before the token is issued.
+ *
+ * Replace "c1" with the Authentication Context ID you configured for the CA policy you want to trigger.
+ */
+export const stepUpAuthenticationContext = "c1";
+
+export const stepUpAuthRequest = {
+    ...loginRequest,
+    claims: JSON.stringify({
+        access_token: {
+            acrs: { essential: true, value: stepUpAuthenticationContext },
+        },
+    }),
 };
 
 /**
