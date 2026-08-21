@@ -192,6 +192,53 @@ body {
     font-weight: 600 !important;
 }
 
+.profile-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    background: var(--brand-cream);
+    border: 1px solid #e3e6df;
+    border-radius: 12px;
+    color: var(--brand-text);
+}
+
+.email-change {
+    flex-basis: 100%;
+}
+
+.email-change-current {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.email-change-link {
+    padding: 0 !important;
+    font-size: 0.85rem;
+    color: var(--brand-green) !important;
+}
+
+.email-change-form {
+    margin-top: 0.5rem;
+    max-width: 360px;
+}
+
+.email-change-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.email-change-demo-note {
+    font-size: 0.85rem;
+    background: #fff8e0;
+    color: #6b5400;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+}
+
 .sensitive-feature-row {
     display: flex;
     align-items: center;
@@ -203,6 +250,27 @@ body {
 .drivers-license {
     font-weight: 600;
     color: var(--brand-text);
+}
+
+/* ---------- Profile completion gate (blocking modal) ---------- */
+.profile-completion-modal .modal-title {
+    color: var(--brand-text);
+    font-weight: 800;
+}
+
+.profile-completion-modal label {
+    font-weight: 600;
+    color: var(--brand-text);
+}
+
+.profile-completion-required-note {
+    font-size: 0.82rem;
+    color: #6b5400;
+    margin: 0.5rem 0 0;
+}
+
+.profile-completion-modal .modal-footer {
+    justify-content: space-between;
 }
 
 /* ---------- Token claims tabs / table ---------- */
