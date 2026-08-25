@@ -75,12 +75,21 @@ export const ProfileCompletion = ({ account, onComplete }) => {
     const { instance } = useMsal();
     const email = getAccountEmail(account);
     const claims = account?.idTokenClaims || {};
-    const nameFallbackParts = (claims.name || '').split(' ');
+
+    // Some social/federated identity providers hand back the literal string
+    // "unknown" instead of omitting the claim when they don't actually have a
+    // name for the user - show a blank field instead of that placeholder.
+    const sanitizeName = (value) => (typeof value === 'string' && value.trim().toLowerCase() !== 'unknown' ? value.trim() : '');
+    const safeGivenName = sanitizeName(claims.given_name);
+    const safeFamilyName = sanitizeName(claims.family_name);
+    const safeDisplayName = sanitizeName(claims.name);
+    const safeAccountName = sanitizeName(account?.name);
+    const nameFallbackParts = safeDisplayName.split(' ').filter(Boolean);
 
     const [form, setForm] = useState(() => ({
-        firstName: claims.given_name || nameFallbackParts[0] || '',
-        lastName: claims.family_name || nameFallbackParts.slice(1).join(' ') || '',
-        preferredName: account?.name || claims.name || '',
+        firstName: safeGivenName || nameFallbackParts[0] || '',
+        lastName: safeFamilyName || nameFallbackParts.slice(1).join(' ') || '',
+        preferredName: safeAccountName || safeDisplayName || '',
         phone: '',
         dobDay: '',
         dobMonth: '',
@@ -97,9 +106,9 @@ export const ProfileCompletion = ({ account, onComplete }) => {
     // account object. This backfills them once the claims actually arrive,
     // without clobbering anything the user has already typed.
     useEffect(() => {
-        const latestFirst = claims.given_name || nameFallbackParts[0] || '';
-        const latestLast = claims.family_name || nameFallbackParts.slice(1).join(' ') || '';
-        const latestPreferred = account?.name || claims.name || '';
+        const latestFirst = safeGivenName || nameFallbackParts[0] || '';
+        const latestLast = safeFamilyName || nameFallbackParts.slice(1).join(' ') || '';
+        const latestPreferred = safeAccountName || safeDisplayName || '';
         setForm((prev) => ({
             ...prev,
             firstName: prev.firstName || latestFirst,
@@ -107,7 +116,7 @@ export const ProfileCompletion = ({ account, onComplete }) => {
             preferredName: prev.preferredName || latestPreferred,
         }));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [claims.given_name, claims.family_name, claims.name, account?.name]);
+    }, [safeGivenName, safeFamilyName, safeDisplayName, safeAccountName]);
 
     const dobYearRef = useRef(null);
     const age = calculateAge(form.dobDay, form.dobMonth, form.dobYear);
