@@ -86,6 +86,7 @@ export const ProfileCompletion = ({ account, onComplete }) => {
         dobMonth: '',
         dobYear: '',
         termsAccepted: false,
+        mfaOptIn: false,
     }));
 
     // The useState initializer above only runs once, at first mount. If the
@@ -145,6 +146,10 @@ export const ProfileCompletion = ({ account, onComplete }) => {
 
     const handleTermsChange = (e) => {
         setForm((prev) => ({ ...prev, termsAccepted: e.target.checked }));
+    };
+
+    const handleMfaOptInChange = (e) => {
+        setForm((prev) => ({ ...prev, mfaOptIn: e.target.checked }));
     };
 
     const handleSubmit = (e) => {
@@ -256,6 +261,13 @@ export const ProfileCompletion = ({ account, onComplete }) => {
                             No country code? We'll default to +1 (US). By providing your number, you agree to receive
                             text messages. Message and data rates may apply.
                         </p>
+                        <Form.Check
+                            type="checkbox"
+                            label="Enroll in MFA using this phone number"
+                            checked={form.mfaOptIn}
+                            onChange={handleMfaOptInChange}
+                            className="mfa-optin-check"
+                        />
                     </Form.Group>
 
                     <Form.Group className="mb-3">

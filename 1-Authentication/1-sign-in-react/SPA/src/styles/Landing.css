@@ -323,6 +323,10 @@ body {
     margin: 0.4rem 0 0;
 }
 
+.mfa-optin-check {
+    margin-top: 0.6rem;
+}
+
 .email-field-row {
     display: flex;
     align-items: center;
