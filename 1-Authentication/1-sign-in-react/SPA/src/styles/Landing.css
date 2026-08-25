@@ -253,14 +253,100 @@ body {
 }
 
 /* ---------- Profile completion gate (blocking modal) ---------- */
+.profile-completion-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.profile-header-logo {
+    height: 32px;
+    margin-bottom: 0.25rem;
+}
+
 .profile-completion-modal .modal-title {
     color: var(--brand-text);
     font-weight: 800;
 }
 
+.profile-loyalty-perks {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.perk-badge {
+    background: rgba(11, 110, 79, 0.1);
+    color: var(--brand-green);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+}
+
+.signed-in-as {
+    font-size: 0.85rem;
+    color: #4b5b52;
+}
+
 .profile-completion-modal label {
     font-weight: 600;
     color: var(--brand-text);
+}
+
+.optional-label {
+    font-weight: 400;
+}
+
+.name-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.name-row > div {
+    flex: 1;
+}
+
+.name-match-note {
+    font-size: 0.8rem;
+    color: #4b5b52;
+    margin: 0 0 1rem;
+}
+
+.phone-consent-note {
+    font-size: 0.8rem;
+    color: #4b5b52;
+    margin: 0.4rem 0 0;
+}
+
+.email-field-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.email-field-input {
+    background-color: #eef0ec !important;
+    flex: 1;
+}
+
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--brand-text);
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.dob-row {
+    display: flex;
+    gap: 0.75rem;
 }
 
 .profile-completion-required-note {

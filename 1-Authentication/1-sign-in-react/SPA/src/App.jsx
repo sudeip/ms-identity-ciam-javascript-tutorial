@@ -6,7 +6,7 @@ import { PageLayout } from './components/PageLayout';
 import { IdTokenData, AccessTokenData } from './components/DataDisplay';
 import { ProfileCompletion } from './components/ProfileCompletion';
 import { EmailChange } from './components/EmailChange';
-import { decodeJwtClaims } from './utils/claimUtils';
+import { decodeJwtClaims, getAccountEmail } from './utils/claimUtils';
 import { isProfileComplete, getProfile, maskDriversLicense, maskDateOfBirth } from './utils/profileStore';
 import { getConfirmedEmail } from './utils/emailChangeStore';
 import { loginRequest, stepUpAuthRequest, stepUpAuthenticationContext } from './authConfig';
@@ -33,8 +33,7 @@ const MainContent = () => {
     // object every call) will re-render, which recomputes a "changed" account
     // reference, which re-fires the effect: an infinite loop.
     const activeAccountId = activeAccount?.homeAccountId;
-    const idTokenEmail =
-        activeAccount?.idTokenClaims?.email || activeAccount?.idTokenClaims?.preferred_username || activeAccount?.username || '';
+    const idTokenEmail = getAccountEmail(activeAccount);
     const [accessTokenClaims, setAccessTokenClaims] = useState(null);
     const [accessTokenError, setAccessTokenError] = useState(null);
     const [profileComplete, setProfileComplete] = useState(false);
@@ -109,7 +108,10 @@ const MainContent = () => {
                                         currentEmail={displayEmail}
                                         onChanged={setDisplayEmail}
                                     />
-                                    <div><strong>Name:</strong> {profile.fullName}</div>
+                                    <div>
+                                        <strong>Name:</strong> {profile.firstName} {profile.lastName}
+                                        {profile.preferredName ? ` (${profile.preferredName})` : ''}
+                                    </div>
                                     <div><strong>Phone:</strong> {profile.phone || 'Not provided'}</div>
                                     <div>
                                         <strong>Date of Birth:</strong>{' '}

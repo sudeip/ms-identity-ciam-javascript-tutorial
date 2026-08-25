@@ -264,3 +264,13 @@ export const decodeJwtClaims = (jwt) => {
         return null;
     }
 };
+
+/**
+ * Best-effort email for display, from whichever ID token claim actually has
+ * it - local accounts, federated accounts, and social IdPs don't all land it
+ * in the same claim.
+ * @param {Object} account MSAL AccountInfo
+ * @returns {String}
+ */
+export const getAccountEmail = (account) =>
+    account?.idTokenClaims?.email || account?.idTokenClaims?.preferred_username || account?.username || '';
