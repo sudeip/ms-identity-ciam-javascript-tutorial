@@ -293,6 +293,15 @@ body {
     color: #4b5b52;
 }
 
+.draft-prefill-note {
+    font-size: 0.85rem;
+    color: var(--brand-green);
+    background: rgba(11, 110, 79, 0.08);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+}
+
 .profile-completion-modal label {
     font-weight: 600;
     color: var(--brand-text);
@@ -455,6 +464,206 @@ body {
     background: #fff8e0;
     border-radius: 8px;
     padding: 0.5rem 0.75rem;
+}
+
+/* ---------- Reservation-time guest info + loyalty opt-in ---------- */
+.reservation-layout {
+    width: 100%;
+    flex-basis: 100%;
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.reservation-summary {
+    flex: 0 0 260px;
+    background: var(--brand-cream);
+    border: 1px solid #e3e6df;
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: left;
+}
+
+.reservation-summary h4 {
+    font-weight: 800;
+    color: var(--brand-text);
+    margin-bottom: 1rem;
+}
+
+.reservation-summary-vehicle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--brand-green);
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #e3e6df;
+}
+
+.reservation-summary-vehicle strong {
+    color: var(--brand-text);
+    display: block;
+}
+
+.reservation-summary-vehicle-class {
+    font-size: 0.8rem;
+    color: #4b5b52;
+}
+
+.reservation-summary-details {
+    margin: 0 0 1rem;
+}
+
+.reservation-summary-details dt {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #8a9189;
+    margin-top: 0.75rem;
+}
+
+.reservation-summary-details dt:first-child {
+    margin-top: 0;
+}
+
+.reservation-summary-details dd {
+    margin: 0.15rem 0 0;
+    font-size: 0.88rem;
+    color: var(--brand-text);
+}
+
+.reservation-summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 1rem;
+    border-top: 1px solid #e3e6df;
+    font-size: 0.85rem;
+    color: #4b5b52;
+}
+
+.reservation-summary-total strong {
+    color: var(--brand-green);
+    font-size: 1.05rem;
+}
+
+.reservation-confirmation {
+    flex: 1 1 380px;
+    text-align: left;
+    padding: 1rem 0;
+}
+
+.reservation-confirmation-icon {
+    margin-bottom: 1rem;
+}
+
+.reservation-confirmation h3 {
+    font-weight: 800;
+    color: var(--brand-text);
+    margin-bottom: 0.5rem;
+}
+
+.reservation-confirmation-demo-note {
+    font-size: 0.8rem;
+    color: #6b5400;
+    background: #fff8e0;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin-top: 1rem;
+    display: inline-block;
+}
+
+.reservation-confirmation .joinButton {
+    margin-top: 1.5rem;
+}
+
+.reservation-signup {
+    flex: 1 1 380px;
+    text-align: left;
+}
+
+.reservation-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+}
+
+.reservation-step {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    color: #8a9189;
+    background: var(--brand-cream);
+}
+
+.reservation-step-done {
+    color: var(--brand-green);
+    background: rgba(11, 110, 79, 0.1);
+}
+
+.reservation-step-done::before {
+    content: '✓ ';
+}
+
+.reservation-step-current {
+    color: var(--brand-green-dark);
+    background: var(--brand-gold);
+}
+
+.reservation-signup h3 {
+    color: var(--brand-text);
+    font-weight: 800;
+    margin-bottom: 0.35rem;
+}
+
+.reservation-signup-subhead {
+    font-size: 0.85rem;
+    color: #4b5b52;
+    margin-bottom: 1.25rem;
+}
+
+.reservation-signup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0 1rem;
+}
+
+.loyalty-optin {
+    background: var(--brand-cream);
+    border: 1px solid #e3e6df;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.loyalty-optin-question {
+    font-weight: 700;
+    color: var(--brand-text);
+    margin-bottom: 0.25rem;
+}
+
+.loyalty-optin-subtext {
+    font-size: 0.9rem;
+    color: #4b5b52;
+    margin-bottom: 1rem;
+}
+
+.loyalty-optin-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.loyalty-optin-login-note {
+    font-size: 0.8rem;
+    color: #4b5b52;
+    margin: 0.6rem 0 0;
 }
 
 /* ---------- Dashboard section (authenticated demo content) ---------- */

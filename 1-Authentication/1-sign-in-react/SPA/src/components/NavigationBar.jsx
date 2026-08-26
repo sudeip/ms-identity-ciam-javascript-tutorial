@@ -1,7 +1,8 @@
 import { forwardRef, useState } from 'react';
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from '@azure/msal-react';
 import { Navbar, Button, Dropdown } from 'react-bootstrap';
-import { loginRequest, joinRequest } from '../authConfig';
+import { loginRequest } from '../authConfig';
+import { ProfileCompletion } from './ProfileCompletion';
 import navLogo from '../assets/landing/nav_logo.png';
 
 const LANGUAGES = ['EN', 'ES', 'FR'];
@@ -39,13 +40,10 @@ export const NavigationBar = () => {
     const [language, setLanguage] = useState('EN');
     const [currency, setCurrency] = useState('USD');
     const [flyoutOpen, setFlyoutOpen] = useState(false);
+    const [showJoinProfile, setShowJoinProfile] = useState(false);
 
     const handleLoginRedirect = () => {
         instance.loginRedirect(loginRequest).catch((error) => console.log(error));
-    };
-
-    const handleJoinRedirect = () => {
-        instance.loginRedirect(joinRequest).catch((error) => console.log(error));
     };
 
     const handleLogoutRedirect = () => {
@@ -118,7 +116,7 @@ export const NavigationBar = () => {
                                 <Button className="signInButton flyout-btn" onClick={handleLoginRedirect}>
                                     Sign In
                                 </Button>
-                                <Button className="joinButton flyout-btn" onClick={handleJoinRedirect}>
+                                <Button className="joinButton flyout-btn" onClick={() => setShowJoinProfile(true)}>
                                     Join Banana Club
                                 </Button>
                             </Dropdown.Menu>
@@ -126,6 +124,9 @@ export const NavigationBar = () => {
                     </div>
                 </UnauthenticatedTemplate>
             </Navbar>
+            {showJoinProfile && (
+                <ProfileCompletion mode="preAuth" onCancel={() => setShowJoinProfile(false)} />
+            )}
         </>
     );
 };

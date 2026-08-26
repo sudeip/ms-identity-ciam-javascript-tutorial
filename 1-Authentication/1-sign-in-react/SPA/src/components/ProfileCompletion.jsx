@@ -2,98 +2,61 @@ import { useEffect, useRef, useState } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { Button, Form, Modal } from 'react-bootstrap';
 import { saveProfile } from '../utils/profileStore';
-import { getAccountEmail } from '../utils/claimUtils';
+import { getAccountEmail, sanitizeName } from '../utils/claimUtils';
+import { DAYS, MONTHS, YEARS, MINIMUM_AGE, calculateAge } from '../utils/dobUtils';
+import { formatPhoneInput, normalizePhone, isValidPhone } from '../utils/phoneUtils';
+import { saveReservationDraft } from '../utils/reservationDraftStore';
+import { joinRequest } from '../authConfig';
 import profileHeaderLogo from '../assets/landing/profile-header-logo.png';
 
-const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
-const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: 100 }, (_, i) => String(CURRENT_YEAR - i));
-const MINIMUM_AGE = 21;
-const DEFAULT_COUNTRY_CODE = '1';
-
 /**
- * Formats phone input as the user types. If they've typed a leading "+",
- * treat it as an explicit international number and just keep the digits
- * (too many country-specific grouping formats to guess at). Otherwise,
- * assume a US number and format it as (XXX) XXX-XXXX as they type.
+ * Collects the loyalty profile - First/Last/Preferred Name, DOB, Phone,
+ * terms acceptance - in one of two modes:
+ *
+ *   - `postAuth` (default): the blocking gate shown after sign-in for anyone
+ *     without a saved profile yet. Email is already known (from the ID
+ *     token) and shown read-only. Submitting saves straight to the profile
+ *     store. Can't be dismissed except via "Cancel & Sign Out" - there's no
+ *     reliable browser event to catch "the user closed the tab" and run an
+ *     async sign-out in response, so nothing is saved until Submit instead,
+ *     and this just reappears on every login until it succeeds.
+ *
+ *   - `preAuth`: shown *before* Entra account creation, from the "Join
+ *     Banana Club" nav flyout and the reservation "Yes, Sign Me Up" step.
+ *     No email field here on purpose - Entra collects and verifies the
+ *     email itself during sign-up, so asking for it twice (and before it's
+ *     verified) doesn't make sense. Submitting saves the details to
+ *     sessionStorage (reservationDraftStore.js) and redirects to Entra's
+ *     hosted sign-up page; App.jsx picks the draft back up on return and
+ *     saves the real profile once the verified email is known. Freely
+ *     dismissable (backdrop/Esc/Cancel) since there's no auth session yet
+ *     to leave dangling.
  */
-const formatPhoneInput = (raw) => {
-    const hasPlus = raw.trim().startsWith('+');
-    const digits = raw.replace(/\D/g, '');
-    if (hasPlus) return `+${digits}`;
-    const trimmed = digits.slice(0, 10);
-    if (trimmed.length === 0) return '';
-    if (trimmed.length < 4) return `(${trimmed}`;
-    if (trimmed.length < 7) return `(${trimmed.slice(0, 3)}) ${trimmed.slice(3)}`;
-    return `(${trimmed.slice(0, 3)}) ${trimmed.slice(3, 6)}-${trimmed.slice(6)}`;
-};
-
-/** Normalizes to E.164, defaulting to +1 when no country code was given. */
-const normalizePhone = (value) => {
-    const hasPlus = value.trim().startsWith('+');
-    const digits = value.replace(/\D/g, '');
-    return hasPlus ? `+${digits}` : `+${DEFAULT_COUNTRY_CODE}${digits}`;
-};
-
-/** +1 numbers get a strict 10-digit check; other country codes get a looser E.164-shaped check. */
-const isValidPhone = (value) => {
-    if (!value.trim()) return false;
-    const normalized = normalizePhone(value);
-    if (normalized.startsWith('+1')) return /^\+1\d{10}$/.test(normalized);
-    return /^\+[1-9]\d{7,14}$/.test(normalized);
-};
-
-/**
- * Whole-years age as of today, accounting for whether the birthday has
- * happened yet this year - not just a year subtraction.
- */
-const calculateAge = (day, month, year) => {
-    if (!day || !month || !year) return null;
-    const dob = new Date(Number(year), Number(month) - 1, Number(day));
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const hadBirthdayThisYear =
-        today.getMonth() > dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
-    if (!hadBirthdayThisYear) age -= 1;
-    return age;
-};
-
-/**
- * Blocking modal that gates access to the reservation/demo content until the
- * user finishes a minimal profile. There's no reliable browser event to
- * catch "the user closed the tab" and run an async sign-out in response, so
- * we don't try - instead:
- *   - nothing is saved until Submit, so this reappears on every login until
- *     it succeeds (the actual gating happens in App.jsx via isProfileComplete)
- *   - the modal can't be dismissed via backdrop click, Esc, or a close
- *     button - "Cancel & sign out" (a real, reliable in-app action) is the
- *     only way out, so a user never ends up signed in with a half-finished
- *     profile.
- */
-export const ProfileCompletion = ({ account, onComplete }) => {
+export const ProfileCompletion = ({ account, onComplete, onCancel, draftPrefill, mode = 'postAuth' }) => {
     const { instance } = useMsal();
+    const isPreAuth = mode === 'preAuth';
     const email = getAccountEmail(account);
     const claims = account?.idTokenClaims || {};
 
-    // Some social/federated identity providers hand back the literal string
-    // "unknown" instead of omitting the claim when they don't actually have a
-    // name for the user - show a blank field instead of that placeholder.
-    const sanitizeName = (value) => (typeof value === 'string' && value.trim().toLowerCase() !== 'unknown' ? value.trim() : '');
     const safeGivenName = sanitizeName(claims.given_name);
     const safeFamilyName = sanitizeName(claims.family_name);
     const safeDisplayName = sanitizeName(claims.name);
     const safeAccountName = sanitizeName(account?.name);
     const nameFallbackParts = safeDisplayName.split(' ').filter(Boolean);
 
+    // If the user already gave us these details (reservation guest form, or
+    // a retry of this same form), that's fresher and more authoritative than
+    // whatever the ID token happens to carry - prefer it.
+    const [draftYear, draftMonth, draftDay] = draftPrefill?.dob ? draftPrefill.dob.split('-') : [];
+
     const [form, setForm] = useState(() => ({
-        firstName: safeGivenName || nameFallbackParts[0] || '',
-        lastName: safeFamilyName || nameFallbackParts.slice(1).join(' ') || '',
-        preferredName: safeAccountName || safeDisplayName || '',
-        phone: '',
-        dobDay: '',
-        dobMonth: '',
-        dobYear: '',
+        firstName: draftPrefill?.firstName || safeGivenName || nameFallbackParts[0] || '',
+        lastName: draftPrefill?.lastName || safeFamilyName || nameFallbackParts.slice(1).join(' ') || '',
+        preferredName: draftPrefill?.preferredName || safeAccountName || safeDisplayName || '',
+        phone: draftPrefill?.phone || '',
+        dobDay: draftDay || '',
+        dobMonth: draftMonth || '',
+        dobYear: draftYear || '',
         termsAccepted: false,
         mfaOptIn: false,
     }));
@@ -104,7 +67,8 @@ export const ProfileCompletion = ({ account, onComplete }) => {
     // fields capture blank and never get a second chance - this component
     // stays mounted even as the parent later re-renders with a fuller
     // account object. This backfills them once the claims actually arrive,
-    // without clobbering anything the user has already typed.
+    // without clobbering anything the user has already typed. No-op in
+    // preAuth mode - there's no account/claims yet.
     useEffect(() => {
         const latestFirst = safeGivenName || nameFallbackParts[0] || '';
         const latestLast = safeFamilyName || nameFallbackParts.slice(1).join(' ') || '';
@@ -164,30 +128,63 @@ export const ProfileCompletion = ({ account, onComplete }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (dobTooYoung || !isValidPhone(form.phone)) return;
-        const { dobDay, dobMonth, dobYear, ...rest } = form;
-        saveProfile(account, { ...rest, dob: `${dobYear}-${dobMonth}-${dobDay}`, phone: normalizePhone(form.phone) });
+        const { dobDay, dobMonth, dobYear, mfaOptIn, ...rest } = form;
+        const profileData = { ...rest, dob: `${dobYear}-${dobMonth}-${dobDay}`, phone: normalizePhone(form.phone) };
+
+        if (isPreAuth) {
+            // Nothing to save to a profile yet - there's no account. Stash it
+            // and go create one; App.jsx finishes the save on return once the
+            // verified email is known.
+            saveReservationDraft(profileData);
+            instance.loginRedirect(joinRequest).catch((error) => console.log(error));
+            return;
+        }
+
+        saveProfile(account, { ...profileData, mfaOptIn });
         onComplete();
     };
 
     const handleCancel = () => {
+        if (isPreAuth) {
+            onCancel?.();
+            return;
+        }
         instance.logoutRedirect().catch((error) => console.log(error));
     };
 
     return (
-        <Modal show backdrop="static" keyboard={false} onHide={handleCancel} centered className="profile-completion-modal">
+        <Modal
+            show
+            backdrop={isPreAuth ? true : 'static'}
+            keyboard={isPreAuth}
+            onHide={handleCancel}
+            centered
+            className="profile-completion-modal"
+        >
             <Form onSubmit={handleSubmit}>
                 <Modal.Header className="profile-completion-header">
                     <img src={profileHeaderLogo} alt="Banana Rental" className="profile-header-logo" />
-                    <Modal.Title>Complete your profile</Modal.Title>
+                    <Modal.Title>{isPreAuth ? 'Join Banana Club' : 'Complete your profile'}</Modal.Title>
                     <div className="profile-loyalty-perks">
                         <span className="perk-badge">Earn &amp; Redeem points</span>
                         <span className="perk-badge">5% off discount offer</span>
                     </div>
                 </Modal.Header>
                 <Modal.Body>
-                    <p className="signed-in-as">
-                        Signed in as: <strong>{email}</strong>
-                    </p>
+                    {isPreAuth ? (
+                        <p className="signed-in-as">
+                            You'll set your email and create a password with Microsoft on the next step.
+                        </p>
+                    ) : (
+                        <p className="signed-in-as">
+                            Signed in as: <strong>{email}</strong>
+                        </p>
+                    )}
+                    {draftPrefill && (
+                        <p className="draft-prefill-note">
+                            We've pre-filled this from what you already gave us - just double check it and accept the terms below.
+                        </p>
+                    )}
 
                     <div className="name-row">
                         <Form.Group className="mb-1">
@@ -233,26 +230,28 @@ export const ProfileCompletion = ({ account, onComplete }) => {
                         )}
                     </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Label>Email</Form.Label>
-                        <div className="email-field-row">
-                            <Form.Control value={email} disabled className="email-field-input" />
-                            <span className="verified-badge">
-                                <svg width="20" height="20" viewBox="0 0 24 24">
-                                    <circle cx="12" cy="12" r="10" fill="var(--brand-green)" />
-                                    <path
-                                        d="m8 12.5 2.5 2.5L16 9.5"
-                                        fill="none"
-                                        stroke="#fff"
-                                        strokeWidth="2.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                                Verified
-                            </span>
-                        </div>
-                    </Form.Group>
+                    {!isPreAuth && (
+                        <Form.Group className="mb-3">
+                            <Form.Label>Email</Form.Label>
+                            <div className="email-field-row">
+                                <Form.Control value={email} disabled className="email-field-input" />
+                                <span className="verified-badge">
+                                    <svg width="20" height="20" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="12" r="10" fill="var(--brand-green)" />
+                                        <path
+                                            d="m8 12.5 2.5 2.5L16 9.5"
+                                            fill="none"
+                                            stroke="#fff"
+                                            strokeWidth="2.5"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                    Verified
+                                </span>
+                            </div>
+                        </Form.Group>
+                    )}
 
                     <Form.Group className="mb-3">
                         <Form.Label>Phone Number *</Form.Label>
@@ -270,13 +269,15 @@ export const ProfileCompletion = ({ account, onComplete }) => {
                             No country code? We'll default to +1 (US). By providing your number, you agree to receive
                             text messages. Message and data rates may apply.
                         </p>
-                        <Form.Check
-                            type="checkbox"
-                            label="Enroll in MFA using this phone number"
-                            checked={form.mfaOptIn}
-                            onChange={handleMfaOptInChange}
-                            className="mfa-optin-check"
-                        />
+                        {!isPreAuth && (
+                            <Form.Check
+                                type="checkbox"
+                                label="Enroll in MFA using this phone number"
+                                checked={form.mfaOptIn}
+                                onChange={handleMfaOptInChange}
+                                className="mfa-optin-check"
+                            />
+                        )}
                     </Form.Group>
 
                     <Form.Group className="mb-3">
@@ -293,10 +294,10 @@ export const ProfileCompletion = ({ account, onComplete }) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <Button type="button" variant="outline-secondary" onClick={handleCancel}>
-                        Cancel &amp; Sign Out
+                        {isPreAuth ? 'Cancel' : 'Cancel & Sign Out'}
                     </Button>
                     <Button type="submit" className="joinButton">
-                        Update profile and continue
+                        {isPreAuth ? 'Continue to Create Account' : 'Update profile and continue'}
                     </Button>
                 </Modal.Footer>
             </Form>

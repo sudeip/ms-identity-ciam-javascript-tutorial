@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MsalProvider, AuthenticatedTemplate, useMsal } from '@azure/msal-react';
 import { InteractionStatus } from '@azure/msal-browser';
 import { Container, Button, Tabs, Tab } from 'react-bootstrap';
@@ -6,9 +6,17 @@ import { PageLayout } from './components/PageLayout';
 import { IdTokenData, AccessTokenData } from './components/DataDisplay';
 import { ProfileCompletion } from './components/ProfileCompletion';
 import { EmailChange } from './components/EmailChange';
+import { ReservationSignup } from './components/ReservationSignup';
 import { decodeJwtClaims, getAccountEmail } from './utils/claimUtils';
-import { isProfileComplete, getProfile, maskDriversLicense, maskDateOfBirth } from './utils/profileStore';
+import { isProfileComplete, getProfile, saveProfile, maskDriversLicense, maskDateOfBirth } from './utils/profileStore';
 import { getConfirmedEmail } from './utils/emailChangeStore';
+import {
+    getReservationDraft,
+    clearReservationDraft,
+    submitReservationSignup,
+    getReservationContext,
+    clearReservationContext,
+} from './utils/reservationDraftStore';
 import { loginRequest, stepUpAuthRequest, stepUpAuthenticationContext } from './authConfig';
 
 import './styles/App.css';
@@ -39,6 +47,35 @@ const MainContent = () => {
     const [profileComplete, setProfileComplete] = useState(false);
     const [profile, setProfile] = useState(null);
     const [displayEmail, setDisplayEmail] = useState('');
+
+    // Read once at mount, not re-derived - if the user came from "Yes, Sign Me
+    // Up" during a reservation (ReservationSignup.jsx), their details are
+    // waiting in sessionStorage from before the redirect to Entra.
+    const [reservationDraft] = useState(() => getReservationDraft());
+    const draftSubmittedRef = useRef(false);
+    // Same idea, but for the location/dates they'd picked before starting
+    // sign-up - see reservationDraftStore.js for why this needs its own
+    // sessionStorage entry rather than a different redirect_uri.
+    const [reservationContext] = useState(() => getReservationContext());
+    const [reservationWelcomeDismissed, setReservationWelcomeDismissed] = useState(false);
+
+    // Once authenticated, the account now has a real, Entra-verified email -
+    // merge it into the pre-auth draft, sync the full profile to the (mocked)
+    // backend, and save it locally as "complete" so the post-auth
+    // ProfileCompletion gate doesn't ask for the same details a second time.
+    // Fires once per mount even if activeAccountId settles across a couple
+    // of renders during redirect processing.
+    useEffect(() => {
+        if (!activeAccountId || !reservationDraft || draftSubmittedRef.current) return;
+        draftSubmittedRef.current = true;
+        const fullProfile = { ...reservationDraft, mfaOptIn: false, email: idTokenEmail };
+        submitReservationSignup(activeAccount, fullProfile).then(() => {
+            saveProfile(activeAccount, fullProfile);
+            setProfileComplete(true);
+            clearReservationDraft();
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeAccountId, reservationDraft, idTokenEmail]);
 
     // getConfirmedEmail returns a plain string (or null), so this is safe even
     // without extra memoization - re-deriving it here just no-ops if unchanged.
@@ -94,10 +131,30 @@ const MainContent = () => {
         <AuthenticatedTemplate>
             {activeAccount ? (
                 <Container>
-                    {!profileComplete ? (
+                    {!profileComplete && reservationDraft ? (
+                        // The sync effect above is about to mark this complete
+                        // (it resolves on the next microtask) - avoid a flash
+                        // of the modal appearing and immediately disappearing.
+                        <p>Setting up your account…</p>
+                    ) : !profileComplete ? (
                         <ProfileCompletion
                             account={activeAccount}
                             onComplete={() => setProfileComplete(true)}
+                        />
+                    ) : reservationContext && !reservationWelcomeDismissed ? (
+                        // Restores "you were reserving a car" after the redirect to
+                        // Entra and back - same sessionStorage-based state restoration
+                        // as the profile draft, not anything tied to the redirect URL.
+                        // Reuses the same Driver Details step rather than auto-completing
+                        // the reservation - the user still has to click Reserve Now.
+                        <ReservationSignup
+                            location={reservationContext.location}
+                            pickupDate={reservationContext.pickupDate}
+                            returnDate={reservationContext.returnDate}
+                            onReservationDone={() => {
+                                clearReservationContext();
+                                setReservationWelcomeDismissed(true);
+                            }}
                         />
                     ) : (
                         <>

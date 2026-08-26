@@ -274,3 +274,13 @@ export const decodeJwtClaims = (jwt) => {
  */
 export const getAccountEmail = (account) =>
     account?.idTokenClaims?.email || account?.idTokenClaims?.preferred_username || account?.username || '';
+
+/**
+ * Some social/federated identity providers hand back the literal string
+ * "unknown" instead of omitting a name claim when they don't actually have
+ * one for the user - treat that as blank rather than displaying it.
+ * @param {*} value
+ * @returns {String}
+ */
+export const sanitizeName = (value) =>
+    typeof value === 'string' && value.trim().toLowerCase() !== 'unknown' ? value.trim() : '';
