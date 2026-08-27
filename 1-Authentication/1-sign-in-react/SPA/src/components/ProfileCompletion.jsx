@@ -5,7 +5,8 @@ import { saveProfile } from '../utils/profileStore';
 import { getAccountEmail, sanitizeName } from '../utils/claimUtils';
 import { DAYS, MONTHS, YEARS, MINIMUM_AGE, calculateAge } from '../utils/dobUtils';
 import { formatPhoneInput, normalizePhone, isValidPhone } from '../utils/phoneUtils';
-import { saveReservationDraft } from '../utils/reservationDraftStore';
+import { saveReservationDraft, clearReservationDraft, clearReservationContext } from '../utils/reservationDraftStore';
+import { deleteAbandonedAccount } from '../utils/accountDeletionStore';
 import { joinRequest } from '../authConfig';
 import profileHeaderLogo from '../assets/landing/profile-header-logo.png';
 
@@ -19,7 +20,12 @@ import profileHeaderLogo from '../assets/landing/profile-header-logo.png';
  *     store. Can't be dismissed except via "Cancel & Sign Out" - there's no
  *     reliable browser event to catch "the user closed the tab" and run an
  *     async sign-out in response, so nothing is saved until Submit instead,
- *     and this just reappears on every login until it succeeds.
+ *     and this just reappears on every login until it succeeds. Cancelling
+ *     out of this gate also cleans up the Entra account that was just
+ *     created for it (see accountDeletionStore.js) - reaching this gate
+ *     unfinished only happens for a brand-new signup that never completed a
+ *     profile, so there's nothing worth keeping behind. The UI doesn't spell
+ *     that out; it just warns that cancelling means starting over.
  *
  *   - `preAuth`: shown *before* Entra account creation, from the "Join
  *     Banana Club" nav flyout and the reservation "Yes, Sign Me Up" step.
@@ -48,6 +54,14 @@ export const ProfileCompletion = ({ account, onComplete, onCancel, draftPrefill,
     // a retry of this same form), that's fresher and more authoritative than
     // whatever the ID token happens to carry - prefer it.
     const [draftYear, draftMonth, draftDay] = draftPrefill?.dob ? draftPrefill.dob.split('-') : [];
+    // draftPrefill is always an object when passed (ReservationSignup no
+    // longer requires its form to be complete before opening this), so its
+    // mere presence isn't enough to say "we pre-filled something" - only show
+    // that note when at least one field actually has content.
+    const hasDraftPrefillData = !!(
+        draftPrefill &&
+        (draftPrefill.firstName || draftPrefill.lastName || draftPrefill.phone || draftYear || draftMonth || draftDay)
+    );
 
     const [form, setForm] = useState(() => ({
         firstName: draftPrefill?.firstName || safeGivenName || nameFallbackParts[0] || '',
@@ -149,7 +163,19 @@ export const ProfileCompletion = ({ account, onComplete, onCancel, draftPrefill,
             onCancel?.();
             return;
         }
-        instance.logoutRedirect().catch((error) => console.log(error));
+        // Reaching this gate at all means profileComplete was false - i.e. no
+        // one has ever finished this step for this account. That's the best
+        // signal this client has, but it's only a UX heuristic, not proof the
+        // account is actually brand-new (see accountDeletionStore.js for why
+        // a real implementation must re-verify account age via Graph on the
+        // backend before actually deleting anything). Clean up any leftover
+        // draft/reservation context too, since neither should follow into
+        // whatever session comes next.
+        clearReservationDraft();
+        clearReservationContext();
+        deleteAbandonedAccount(account).finally(() => {
+            instance.logoutRedirect().catch((error) => console.log(error));
+        });
     };
 
     return (
@@ -180,7 +206,7 @@ export const ProfileCompletion = ({ account, onComplete, onCancel, draftPrefill,
                             Signed in as: <strong>{email}</strong>
                         </p>
                     )}
-                    {draftPrefill && (
+                    {hasDraftPrefillData && (
                         <p className="draft-prefill-note">
                             We've pre-filled this from what you already gave us - just double check it and accept the terms below.
                         </p>
@@ -291,6 +317,11 @@ export const ProfileCompletion = ({ account, onComplete, onCancel, draftPrefill,
                     </Form.Group>
 
                     <p className="profile-completion-required-note">* required to complete your profile</p>
+                    {!isPreAuth && (
+                        <p className="cancel-warning-note">
+                            If you cancel now, you'll need to create your account again next time.
+                        </p>
+                    )}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button type="button" variant="outline-secondary" onClick={handleCancel}>

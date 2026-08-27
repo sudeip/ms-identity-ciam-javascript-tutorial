@@ -368,6 +368,12 @@ body {
     margin: 0.5rem 0 0;
 }
 
+.cancel-warning-note {
+    font-size: 0.8rem;
+    color: #6b5400;
+    margin: 0.75rem 0 0;
+}
+
 .profile-completion-modal .modal-footer {
     justify-content: space-between;
 }

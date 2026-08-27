@@ -39,7 +39,6 @@ export const NavigationBar = () => {
     const { instance } = useMsal();
     const [language, setLanguage] = useState('EN');
     const [currency, setCurrency] = useState('USD');
-    const [flyoutOpen, setFlyoutOpen] = useState(false);
     const [showJoinProfile, setShowJoinProfile] = useState(false);
 
     const handleLoginRedirect = () => {
@@ -104,13 +103,13 @@ export const NavigationBar = () => {
                 </AuthenticatedTemplate>
                 <UnauthenticatedTemplate>
                     <div className="collapse navbar-collapse justify-content-end">
-                        <Dropdown
-                            align="end"
-                            show={flyoutOpen}
-                            onToggle={(isOpen) => setFlyoutOpen(isOpen)}
-                            onMouseEnter={() => setFlyoutOpen(true)}
-                            onMouseLeave={() => setFlyoutOpen(false)}
-                        >
+                        {/* Uncontrolled, like the Language/Currency dropdowns above - Bootstrap
+                            manages its own open/close on click. An earlier version also drove
+                            this from onMouseEnter/onMouseLeave (via a controlled `show` prop),
+                            but that fought with Bootstrap's own click-toggle: hovering would open
+                            the menu, then the very click meant to use it registered as "toggle an
+                            already-open menu closed", so it took multiple clicks to catch it open. */}
+                        <Dropdown align="end">
                             <Dropdown.Toggle as={FlyoutToggle} />
                             <Dropdown.Menu className="flyout-menu">
                                 <Button className="signInButton flyout-btn" onClick={handleLoginRedirect}>

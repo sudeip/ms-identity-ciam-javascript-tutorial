@@ -246,8 +246,11 @@ export const ReservationSignup = ({ location, pickupDate, returnDate, onReservat
                             <Button
                                 type="button"
                                 className="joinButton"
-                                disabled={!detailsComplete}
                                 onClick={() => {
+                                    // Not gated on detailsComplete like the other two buttons here -
+                                    // whatever's filled in gets carried over as a prefill, but
+                                    // ProfileCompletion (preAuth) collects and validates everything
+                                    // itself, so there's nothing this form needs to enforce first.
                                     saveReservationContext({ location, pickupDate, returnDate });
                                     setShowJoinProfile(true);
                                 }}
